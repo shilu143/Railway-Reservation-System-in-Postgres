@@ -1,0 +1,4 @@
+<no_of_passengers> <name_of_all_passengers> <train_no> <Doj> <Class>	//query-1
+<no_of_passengers> <name_of_all_passengers> <train_no> <Doj> <Class>	//query-2
+<no_of_passengers> <name_of_all_passengers> <train_no> <Doj> <Class>	//query-3
+Finish

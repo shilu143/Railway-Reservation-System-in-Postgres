@@ -27,31 +27,14 @@ public class JDBCPostgreSQLConnection {
     }
 
     static void Release_Train(Connection connection, int trainno, LocalDate doj, int ac, int sl) {
-        System.out.println("You were here!");
         try {
-            String dt = String.valueOf(doj.getYear()) + doj.getMonth()
-                    + String.valueOf(doj.getDayOfMonth());
+            String tmp = String.valueOf(doj.getMonth());
+            tmp = tmp.substring(0, 1) + tmp.substring(tmp.length() - 1);
+            String dt = String.valueOf(doj.getYear()) + tmp +
+                    String.valueOf(doj.getDayOfMonth());
 
-            String table1Name = "AC_" + String.valueOf(trainno) + "_" + dt;
-            String table2Name = "SL_" + String.valueOf(trainno) + "_" + dt;
-
-            // PreparedStatement pstmt = connection.prepareStatement("CALL
-            // table_create(?)");
-            // pstmt.setString(1, table1Name);
-            // pstmt.execute();
-            // pstmt.close();
-            // Statement stmt = connection.createStatement();
-            // stmt.addBatch(String.format("call table_create('%s');", table1Name));
-            // stmt.addBatch(String.format("call table_create('%s');", table2Name));
-            // stmt.executeBatch();
-            // stmt.close();
-            // CallableStatement upperFunc = connection.prepareCall("{? = call table_create(
-            // ? ) }");
-            // upperFunc.registerOutParameter(1, Types.VARCHAR);
-            // upperFunc.setString(2, "lowercase to uppercase");
-            // upperFunc.execute();
-            // String upperCased = upperFunc.getString(1);
-            // upperFunc.close();
+            String table1Name = "A" + String.valueOf(trainno) + "D" + dt;
+            String table2Name = "S" + String.valueOf(trainno) + "D" + dt;
 
             PreparedStatement pstmt = connection.prepareStatement("CALL fill_table(?, ?, ?, ?, ?, ?)");
             pstmt.setString(1, table1Name);
@@ -62,9 +45,41 @@ public class JDBCPostgreSQLConnection {
             pstmt.setInt(6, sl);
             pstmt.execute();
             pstmt.close();
+            System.out.println("Trained released in the Booking System!");
 
         } catch (SQLException e) {
             System.out.println(e.getMessage());
+        }
+    }
+
+    static void BookTicket(Connection connection, int n, String[] names, int trainno, LocalDate doj, String cls) {
+        String tmp = String.valueOf(doj.getMonth());
+        tmp = tmp.substring(0, 1) + tmp.substring(tmp.length() - 1);
+        String dt = String.valueOf(doj.getYear()) + tmp +
+                String.valueOf(doj.getDayOfMonth());
+        String tabname = "";
+        if (cls.equals("AC")) {
+            tabname = "A" + String.valueOf(trainno) + "D" + dt;
+        } else if (cls.equals("SL")) {
+            tabname = "S" + String.valueOf(trainno) + "D" + dt;
+        } else {
+            System.out.println("Give Proper Class choice (AC/SL)");
+            return;
+        }
+
+        try {
+            PreparedStatement pstmt = connection.prepareStatement("CALL book_ticket(?, ?, ?, ?, ?, ?)");
+            pstmt.setString(1, tabname);
+            pstmt.setInt(2, n);
+            Array stringsArray = connection.createArrayOf("varchar", names);
+            pstmt.setArray(3, stringsArray);
+            pstmt.setInt(4, trainno);
+            pstmt.setDate(5, Date.valueOf(doj));
+            pstmt.setString(6, cls);
+            pstmt.execute();
+            System.out.println("Ticket has been booked!");
+        } catch (SQLException exception) {
+            System.out.println(exception.getMessage());
         }
     }
 
@@ -75,7 +90,6 @@ public class JDBCPostgreSQLConnection {
         try {
             connection = app.connect();
             connection.setAutoCommit(false);
-            connection.beginRequest();
             connection.setTransactionIsolation(2); // READ-COMMITED
 
             String query = "";
@@ -94,9 +108,14 @@ public class JDBCPostgreSQLConnection {
             stmt.execute(query);
             stmt.close();
 
-            Release_Train(connection, 12345, LocalDate.parse("2022-11-20"), 2, 3);
-            Release_Train(connection, 12345, LocalDate.parse("2022-11-21"), 10, 30);
+            Release_Train(connection, 12345, LocalDate.parse("2022-11-20"), 1, 1);
+            Release_Train(connection, 12345, LocalDate.parse("2022-11-21"), 1, 1);
+            connection.commit();
 
+            // Booking ticket
+            String[] pss = { "SHILU", "ANITA", "SUMITA" };
+            BookTicket(connection, 3, pss, 12345, LocalDate.parse("2022-11-20"), "AC");
+            BookTicket(connection, 3, pss, 12345, LocalDate.parse("2022-11-20"), "SL");
             connection.commit();
             connection.close();
         } catch (SQLException e) {
