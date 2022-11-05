@@ -28,10 +28,8 @@ public class JDBCPostgreSQLConnection {
 
     static void Release_Train(Connection connection, int trainno, LocalDate doj, int ac, int sl) {
         try {
-            String tmp = String.valueOf(doj.getMonth());
-            tmp = tmp.substring(0, 1) + tmp.substring(tmp.length() - 1);
-            String dt = String.valueOf(doj.getYear()) + tmp +
-                    String.valueOf(doj.getDayOfMonth());
+            String tmp = String.valueOf(doj);
+            String dt = tmp.substring(0, 4) + tmp.substring(5, 7) + tmp.substring(8, 10);
 
             String table1Name = "A" + String.valueOf(trainno) + "D" + dt;
             String table2Name = "S" + String.valueOf(trainno) + "D" + dt;
@@ -53,10 +51,9 @@ public class JDBCPostgreSQLConnection {
     }
 
     static void BookTicket(Connection connection, int n, String[] names, int trainno, LocalDate doj, String cls) {
-        String tmp = String.valueOf(doj.getMonth());
-        tmp = tmp.substring(0, 1) + tmp.substring(tmp.length() - 1);
-        String dt = String.valueOf(doj.getYear()) + tmp +
-                String.valueOf(doj.getDayOfMonth());
+        String tmp = String.valueOf(doj);
+        String dt = tmp.substring(0, 4) + tmp.substring(5, 7) + tmp.substring(8, 10);
+
         String tabname = "";
         if (cls.equals("AC")) {
             tabname = "A" + String.valueOf(trainno) + "D" + dt;
@@ -107,15 +104,17 @@ public class JDBCPostgreSQLConnection {
             Statement stmt = connection.createStatement();
             stmt.execute(query);
             stmt.close();
+            connection.commit();
 
+            // Release Train
             Release_Train(connection, 12345, LocalDate.parse("2022-11-20"), 1, 1);
             Release_Train(connection, 12345, LocalDate.parse("2022-11-21"), 1, 1);
             connection.commit();
 
             // Booking ticket
-            String[] pss = { "SHILU", "ANITA", "SUMITA" };
-            BookTicket(connection, 3, pss, 12345, LocalDate.parse("2022-11-20"), "AC");
-            BookTicket(connection, 3, pss, 12345, LocalDate.parse("2022-11-20"), "SL");
+            String[][] pss = { { "Olivia", "Amelia", "Noah" }, { "Liam", "Liam" } };
+            BookTicket(connection, 3, pss[0], 12345, LocalDate.parse("2022-11-20"), "AC");
+            BookTicket(connection, 2, pss[1], 12345, LocalDate.parse("2022-11-20"), "AC");
             connection.commit();
             connection.close();
         } catch (SQLException e) {

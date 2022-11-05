@@ -28,7 +28,7 @@ create table Ticket(
 	age integer[] ,
 	gender char(1)[] ,
 	coachno integer[] not NULL,
-	coachtype char(2) ,
+	coachtype char(2) not NULL,
 	berthno integer[] not NULL,
 	berthtype char(2)[] not NULL,
 	primary key (pnr),
@@ -102,9 +102,9 @@ LANGUAGE plpgsql
 as $$
 	declare
 		answer text[][]; 
-		coacharr int[];
-		bertharr int[];
-		berthtyp text[];
+		pass_coach int[];
+		pass_berth int[];
+		pass_berthtype text[];
 		rec record;
 		count int := 1;
 		pnr text;
@@ -117,9 +117,9 @@ as $$
 				EXIT;
 			END IF;
       		IF rec.stat = 'E' then
-				coacharr[count] = rec.coachno;
-				bertharr[count] = rec.berthno;
-				berthtyp[count] = rec.berthtype;
+				pass_coach[count] = rec.coachno;
+				pass_berth[count] = rec.berthno;
+				pass_berthtype[count] = rec.berthtype;
 
 				EXECUTE format('UPDATE %s 
 				set stat = ''F''
@@ -131,9 +131,9 @@ as $$
 			END IF;
     	END LOOP;
 
-		pnr := concat(pnr, 'C', coacharr[1], 'B', bertharr[1]);
+		pnr := concat(pnr, 'C', pass_coach[1], 'B', pass_berth[1]);
 		EXECUTE format('INSERT INTO Ticket(trainno, doj, pnr, passenger_no, names, coachno, coachtype, berthno, berthtype) 
 		VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)')
-		USING trainno, doj, pnr, n, names, coacharr, choice, bertharr, berthtyp;
+		USING trainno, doj, pnr, n, names, pass_coach, choice, pass_berth, pass_berthtype;
 	end;
 $$;
