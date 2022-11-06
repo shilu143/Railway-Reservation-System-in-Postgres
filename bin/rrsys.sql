@@ -4,7 +4,7 @@ CREATE SCHEMA public;
 GRANT ALL ON SCHEMA public TO postgres;
 GRANT ALL ON SCHEMA public TO public;
 
-create table Train(
+create table Trains(
 	trainno integer Primary key
 );
 
@@ -16,7 +16,7 @@ create table Booking_System(
 	AC_seat_count integer not null check (AC_seat_count >= 0),
 	SL_seat_count integer not null check (SL_seat_count >= 0),
 	primary key(trainno, doj),
-	foreign key (trainno) references train(trainno)
+	foreign key (trainno) references trains(trainno)
 );
 
 create table Ticket(
@@ -35,14 +35,12 @@ create table Ticket(
 	foreign key (trainno, doj) references booking_system(trainno, doj)
 );
 
-INSERT INTO train VALUES(12345);
 
 CREATE OR REPLACE PROCEDURE INSERT_TRAIN(IN trainno integer)
 LANGUAGE plpgsql
 as $$
 	begin
-		INSERT INTO train(trainno) VALUES(trainno);
-		commit;
+		INSERT INTO trains VALUES(trainno);
 	end;
 $$;
 
@@ -64,7 +62,8 @@ as $$
 	end;
 $$;
 
-CREATE OR REPLACE PROCEDURE	FILL_TABLE(IN ac_tabname varchar, IN sl_tabname varchar, IN trainno integer, IN doj date, IN ac integer, IN sl integer)
+CREATE OR REPLACE PROCEDURE	FILL_TABLE(IN ac_tabname varchar, IN sl_tabname varchar, IN trainno integer,
+ 										IN doj date, IN ac integer, IN sl integer)
 LANGUAGE plpgsql
 as $$
 	declare
@@ -97,7 +96,7 @@ as $$
 $$;
 
 
-CREATE OR REPLACE PROCEDURE Book_Ticket(IN tabname varchar, IN n int, IN names varchar[], IN trainno int, IN doj date, IN choice varchar)
+CREATE OR REPLACE PROCEDURE Book_Ticket(IN tabname varchar, IN n int, IN names varchar[], IN age int[], IN gender varchar[], IN trainno int, IN doj date, IN choice varchar)
 LANGUAGE plpgsql
 as $$
 	declare
@@ -132,8 +131,8 @@ as $$
     	END LOOP;
 
 		pnr := concat(pnr, 'C', pass_coach[1], 'B', pass_berth[1]);
-		EXECUTE format('INSERT INTO Ticket(trainno, doj, pnr, passenger_no, names, coachno, coachtype, berthno, berthtype) 
-		VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)')
-		USING trainno, doj, pnr, n, names, pass_coach, choice, pass_berth, pass_berthtype;
+		EXECUTE format('INSERT INTO Ticket(trainno, doj, pnr, passenger_no, names, age, gender, coachno, coachtype, berthno, berthtype) 
+		VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)')
+		USING trainno, doj, pnr, n, names, age, gender, pass_coach, choice, pass_berth, pass_berthtype;
 	end;
 $$;
