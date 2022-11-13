@@ -39,6 +39,7 @@ LANGUAGE plpgsql
 as $$
 	begin
 		INSERT INTO trains VALUES(trainno);
+		commit;
 	end;
 $$;
 
@@ -57,6 +58,7 @@ as $$
 			FOREIGN KEY(trainno, doj) REFERENCES booking_system(trainno, doj)
 			);', tabname
 		);
+		commit;
 	end;
 $$;
 
@@ -90,6 +92,7 @@ as $$
 				USING trainno, doj, coachno, (berthno + 1), temp;
 			end loop;
 		end loop;
+		commit;
 	end;
 $$;
 
@@ -132,5 +135,18 @@ as $$
 		EXECUTE format('INSERT INTO Ticket(trainno, doj, pnr, passenger_no, names, coachno, coachtype, berthno, berthtype) 
 		VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)')
 		USING trainno, doj, pnr, n, names, pass_coach, choice, pass_berth, pass_berthtype;
+
+		if choice = 'AC' then
+			EXECUTE format('UPDATE booking_system
+			SET ac_seat_count = ac_seat_count - $1
+			WHERE trainno = $2 and doj = $3')
+			USING n, trainno, doj;
+		else
+			EXECUTE format('UPDATE booking_system
+			SET sl_seat_count = sl_seat_count - $1
+			WHERE trainno = $2 and doj = $3')
+			USING n, trainno, doj;
+		end if;
+		commit;
 	end;
 $$;

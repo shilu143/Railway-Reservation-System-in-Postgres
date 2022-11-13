@@ -3,7 +3,6 @@ import java.sql.Date;
 import java.time.LocalDate;
 import java.io.*;
 import java.util.*;
-import java.util.regex.*;
 
 public class App {
     private final String url = "jdbc:postgresql://localhost:5432/rr_sys";
@@ -46,7 +45,7 @@ public class App {
             pstmt.close();
             System.out.println("Trained released in the Booking System!");
 
-            connection.commit();
+            //////connection.commit();
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
@@ -72,18 +71,14 @@ public class App {
             pstmt.setString(1, tabname);
             pstmt.setInt(2, n);
             Array nameArray = connection.createArrayOf("varchar", names);
-            // Array ageArray = connection.createArrayOf("int4", age);
-            // Array genderArray = connection.createArrayOf("varchar", gender);
             pstmt.setArray(3, nameArray);
-            // pstmt.setArray(4, ageArray);
-            // pstmt.setArray(5, genderArray);
             pstmt.setInt(4, trainno);
             pstmt.setDate(5, Date.valueOf(doj));
             pstmt.setString(6, cls);
             pstmt.execute();
             System.out.println("Ticket has been booked!");
 
-            connection.commit();
+            ////connection.commit();
         } catch (SQLException exception) {
             System.out.println(exception.getMessage());
         }
@@ -157,7 +152,7 @@ public class App {
                 PreparedStatement pstmt = connection.prepareStatement("Call Insert_Train(?)");
                 pstmt.setInt(1, trainno);
                 pstmt.execute();
-                connection.commit();
+                ////connection.commit();
                 pstmt.close();
                 System.out.println("Train inserted in Train table!");
             }
@@ -173,7 +168,7 @@ public class App {
 
         try {
             connection = app.connect();
-            connection.setAutoCommit(false);
+            // connection.setAutoCommit(false);
             connection.setTransactionIsolation(2); // READ-COMMITED
 
             String query = "";
@@ -191,7 +186,7 @@ public class App {
             Statement stmt = connection.createStatement();
             stmt.execute(query);
             stmt.close();
-            connection.commit();
+            ////connection.commit();
 
             // Insert Train
             insertTrainInput(connection);
