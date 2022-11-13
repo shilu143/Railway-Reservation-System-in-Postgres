@@ -25,8 +25,6 @@ create table Ticket(
 	pnr varchar(20),
 	passenger_no integer not NULL,
 	names text[] not NULL,
-	age integer[] ,
-	gender char(1)[] ,
 	coachno integer[] not NULL,
 	coachtype char(2) not NULL,
 	berthno integer[] not NULL,
@@ -96,7 +94,7 @@ as $$
 $$;
 
 
-CREATE OR REPLACE PROCEDURE Book_Ticket(IN tabname varchar, IN n int, IN names varchar[], IN age int[], IN gender varchar[], IN trainno int, IN doj date, IN choice varchar)
+CREATE OR REPLACE PROCEDURE Book_Ticket(IN tabname varchar, IN n int, IN names varchar[], IN trainno int, IN doj date, IN choice varchar)
 LANGUAGE plpgsql
 as $$
 	declare
@@ -131,8 +129,8 @@ as $$
     	END LOOP;
 
 		pnr := concat(pnr, 'C', pass_coach[1], 'B', pass_berth[1]);
-		EXECUTE format('INSERT INTO Ticket(trainno, doj, pnr, passenger_no, names, age, gender, coachno, coachtype, berthno, berthtype) 
-		VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)')
-		USING trainno, doj, pnr, n, names, age, gender, pass_coach, choice, pass_berth, pass_berthtype;
+		EXECUTE format('INSERT INTO Ticket(trainno, doj, pnr, passenger_no, names, coachno, coachtype, berthno, berthtype) 
+		VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)')
+		USING trainno, doj, pnr, n, names, pass_coach, choice, pass_berth, pass_berthtype;
 	end;
 $$;

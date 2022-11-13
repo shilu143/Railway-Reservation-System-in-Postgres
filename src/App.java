@@ -52,7 +52,7 @@ public class App {
         }
     }
 
-    static void BookTicket(Connection connection, int n, String[] names, Integer[] age, String[] gender, int trainno,
+    static void BookTicket(Connection connection, int n, String[] names, int trainno,
             LocalDate doj, String cls) {
         String tmp = String.valueOf(doj);
         String dt = tmp.substring(0, 4) + tmp.substring(5, 7) + tmp.substring(8, 10);
@@ -68,18 +68,18 @@ public class App {
         }
 
         try {
-            PreparedStatement pstmt = connection.prepareStatement("CALL book_ticket(?, ?, ?, ?, ?, ?, ?, ?)");
+            PreparedStatement pstmt = connection.prepareStatement("CALL book_ticket(?, ?, ?, ?, ?, ?)");
             pstmt.setString(1, tabname);
             pstmt.setInt(2, n);
             Array nameArray = connection.createArrayOf("varchar", names);
-            Array ageArray = connection.createArrayOf("int4", age);
-            Array genderArray = connection.createArrayOf("varchar", gender);
+            // Array ageArray = connection.createArrayOf("int4", age);
+            // Array genderArray = connection.createArrayOf("varchar", gender);
             pstmt.setArray(3, nameArray);
-            pstmt.setArray(4, ageArray);
-            pstmt.setArray(5, genderArray);
-            pstmt.setInt(6, trainno);
-            pstmt.setDate(7, Date.valueOf(doj));
-            pstmt.setString(8, cls);
+            // pstmt.setArray(4, ageArray);
+            // pstmt.setArray(5, genderArray);
+            pstmt.setInt(4, trainno);
+            pstmt.setDate(5, Date.valueOf(doj));
+            pstmt.setString(6, cls);
             pstmt.execute();
             System.out.println("Ticket has been booked!");
 
@@ -92,23 +92,19 @@ public class App {
     static void bookingSystemInput(Connection connection) {
         String query = "";
         try {
-            File file = new File("./src/admin.txt");
+            File file = new File("./input/Trainschedule.txt");
             Scanner scan = new Scanner(file);
             while (scan.hasNextLine()) {
                 query = scan.nextLine();
-                if (query.equals("Finish")) {
-                    scan.close();
-                    return;
+                if (query.equals("#")) {
+                    break;
                 }
-                Matcher m = Pattern.compile("\\<(.*?)\\>").matcher(query);
-                ArrayList<String> token = new ArrayList<String>();
-                while (m.find()) {
-                    token.add(m.group(1));
-                }
-                int trainno = Integer.valueOf(token.get(0).replaceAll("\\s", ""));
-                LocalDate doj = LocalDate.parse(token.get(1).replaceAll("\\s", ""));
-                int ac = Integer.valueOf(token.get(2).replaceAll("\\s", ""));
-                int sl = Integer.valueOf(token.get(3).replaceAll("\\s", ""));
+
+                String[] token = query.split("\\s+");
+                int trainno = Integer.valueOf(token[0]);
+                LocalDate doj = LocalDate.parse(token[1]);
+                int ac = Integer.valueOf(token[2]);
+                int sl = Integer.valueOf(token[3]);
 
                 Release_Train(connection, trainno, doj, ac, sl);
             }
@@ -121,32 +117,27 @@ public class App {
     static void ticketBookingInput(Connection connection) {
         String query = "";
         try {
-            File file = new File("./src/client.txt");
+            File file = new File("./input/bookings.txt");
             Scanner scan = new Scanner(file);
             while (scan.hasNextLine()) {
                 query = scan.nextLine();
-                if (query.equals("Finish")) {
+                if (query.equals("#")) {
                     scan.close();
                     return;
                 }
-                Matcher m = Pattern.compile("\\<(.*?)\\>").matcher(query);
-                ArrayList<String> token = new ArrayList<String>();
-                while (m.find()) {
-                    token.add(m.group(1));
+                query = query.replaceAll(",", "");
+                String[] token = query.split("\\s+");
+                int n = Integer.valueOf(token[0].replaceAll("\\s", ""));
+                String[] names = new String[n];
+                for (int i = 0; i < n; i++) {
+                    names[i] = token[i + 1];
                 }
-                int n = Integer.valueOf(token.get(0).replaceAll("\\s", ""));
-                String[] names = token.get(1).split(",", 0);
-                String[] tmp = token.get(2).replaceAll("\\s", "").split(",", 0);
-                Integer[] age = new Integer[tmp.length];
-                for (int i = 0; i < tmp.length; i++) {
-                    age[i] = Integer.valueOf(tmp[i]);
-                }
-                String[] gender = token.get(3).replaceAll("\\s", "").split(",", 0);
-                int trainno = Integer.valueOf(token.get(4).replaceAll("\\s", ""));
-                LocalDate doj = LocalDate.parse(token.get(5).replaceAll("\\s", ""));
-                String cls = token.get(6).replaceAll("\\s", "");
 
-                BookTicket(connection, n, names, age, gender, trainno, doj, cls);
+                int trainno = Integer.valueOf(token[n + 1].replaceAll("\\s", ""));
+                LocalDate doj = LocalDate.parse(token[n + 2].replaceAll("\\s", ""));
+                String cls = token[n + 3].replaceAll("\\s", "");
+
+                BookTicket(connection, n, names, trainno, doj, cls);
             }
             scan.close();
         } catch (IOException e) {
@@ -157,7 +148,7 @@ public class App {
     static void insertTrainInput(Connection connection) throws SQLException {
         String query = "";
         try {
-            File file = new File("./src/trainInput.txt");
+            File file = new File("./input/trains.txt");
             Scanner scan = new Scanner(file);
             while (scan.hasNextLine()) {
                 query = scan.nextLine();

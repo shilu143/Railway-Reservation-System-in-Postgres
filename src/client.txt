@@ -1,4 +1,0 @@
-< 3 >  < Olivia , Amelia , Noah >  < 25 , 21 , 27 >  < F , F , M >  < 12345 >  < 2022-11-20 >  < AC >	//query-1
-< 2 >  < Liam , Ryan >  < 30 , 15 >  < M , M >  < 12345 >  < 2022-11-20 >  <SL>	                        //query-2
-< 1 >  < Shilu Tudu >  < 21 >  < M >  < 12345 >  < 2022-11-21 >  <AC>	                                //query-3
-Finish
