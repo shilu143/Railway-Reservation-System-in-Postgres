@@ -17,7 +17,7 @@ public class App {
             if (cnct != null) {
                 System.out.println("Connected to the PostgreSQL server successfully.");
             } else {
-                System.out.println("Failed to make connection!");
+                System.out.println("Failed to make connection!!!");
             }
 
         } catch (SQLException e) {
@@ -43,7 +43,7 @@ public class App {
             pstmt.setInt(6, sl);
             pstmt.execute();
             pstmt.close();
-            System.out.println("Trained released in the Booking System!");
+            System.out.println("Trained released in the Booking System");
 
         } catch (SQLException e) {
             System.out.println(e.getMessage());
@@ -94,7 +94,7 @@ public class App {
             Scanner scan = new Scanner(file);
             while (scan.hasNextLine()) {
                 query = scan.nextLine();
-                if (query.equals("#")) {
+                if (query.replaceAll("\\s+", "").equals("#")) {
                     break;
                 }
 
@@ -119,21 +119,21 @@ public class App {
             Scanner scan = new Scanner(file);
             while (scan.hasNextLine()) {
                 query = scan.nextLine();
-                if (query.equals("#")) {
+                if (query.replaceAll("\\s", "").equals("#")) {
                     scan.close();
                     return;
                 }
                 query = query.replaceAll(",", "");
                 String[] token = query.split("\\s+");
-                int n = Integer.valueOf(token[0].replaceAll("\\s", ""));
+                int n = Integer.valueOf(token[0]);
                 String[] names = new String[n];
                 for (int i = 0; i < n; i++) {
                     names[i] = token[i + 1];
                 }
 
-                int trainno = Integer.valueOf(token[n + 1].replaceAll("\\s", ""));
-                LocalDate doj = LocalDate.parse(token[n + 2].replaceAll("\\s", ""));
-                String cls = token[n + 3].replaceAll("\\s", "");
+                int trainno = Integer.valueOf(token[n + 1]);
+                LocalDate doj = LocalDate.parse(token[n + 2]);
+                String cls = token[n + 3];
 
                 BookTicket(connection, n, names, trainno, doj, cls);
             }
@@ -150,16 +150,16 @@ public class App {
             Scanner scan = new Scanner(file);
             while (scan.hasNextLine()) {
                 query = scan.nextLine();
+                query = query.replaceAll("\\s+", "");
                 if (query.equals("#")) {
                     break;
                 }
-                query = query.replaceAll("\\s", "");
                 int trainno = Integer.valueOf(query);
-                PreparedStatement pstmt = connection.prepareStatement("Call Insert_Train(?)");
+                PreparedStatement pstmt = connection.prepareStatement("CALL Insert_Train(?)");
                 pstmt.setInt(1, trainno);
                 pstmt.execute();
                 pstmt.close();
-                System.out.println("Train inserted in Train table!");
+                System.out.println("Train inserted in Train table");
             }
             scan.close();
         } catch (IOException e) {
