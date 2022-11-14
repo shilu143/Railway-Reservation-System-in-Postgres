@@ -45,7 +45,6 @@ public class App {
             pstmt.close();
             System.out.println("Trained released in the Booking System!");
 
-            //////connection.commit();
         } catch (SQLException e) {
             System.out.println(e.getMessage());
         }
@@ -67,7 +66,7 @@ public class App {
         }
 
         try {
-            PreparedStatement pstmt = connection.prepareStatement("CALL book_ticket(?, ?, ?, ?, ?, ?)");
+            CallableStatement pstmt = connection.prepareCall(" CALL book_ticket(?, ?, ?, ?, ?, ?, ?) ");
             pstmt.setString(1, tabname);
             pstmt.setInt(2, n);
             Array nameArray = connection.createArrayOf("varchar", names);
@@ -75,10 +74,14 @@ public class App {
             pstmt.setInt(4, trainno);
             pstmt.setDate(5, Date.valueOf(doj));
             pstmt.setString(6, cls);
+            pstmt.registerOutParameter(7, Types.INTEGER);
             pstmt.execute();
-            System.out.println("Ticket has been booked!");
+            if (pstmt.getInt(7) == 1) {
+                System.out.println("Ticket successfully Booked");
+            } else {
+                System.out.println("Unable to book Ticket(there is not enough seat available)");
+            }
 
-            ////connection.commit();
         } catch (SQLException exception) {
             System.out.println(exception.getMessage());
         }
@@ -147,12 +150,14 @@ public class App {
             Scanner scan = new Scanner(file);
             while (scan.hasNextLine()) {
                 query = scan.nextLine();
+                if (query.equals("#")) {
+                    break;
+                }
                 query = query.replaceAll("\\s", "");
                 int trainno = Integer.valueOf(query);
                 PreparedStatement pstmt = connection.prepareStatement("Call Insert_Train(?)");
                 pstmt.setInt(1, trainno);
                 pstmt.execute();
-                ////connection.commit();
                 pstmt.close();
                 System.out.println("Train inserted in Train table!");
             }
@@ -168,8 +173,6 @@ public class App {
 
         try {
             connection = app.connect();
-            // connection.setAutoCommit(false);
-            connection.setTransactionIsolation(2); // READ-COMMITED
 
             String query = "";
             try {
@@ -186,7 +189,6 @@ public class App {
             Statement stmt = connection.createStatement();
             stmt.execute(query);
             stmt.close();
-            ////connection.commit();
 
             // Insert Train
             insertTrainInput(connection);

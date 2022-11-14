@@ -97,7 +97,7 @@ as $$
 $$;
 
 
-CREATE OR REPLACE PROCEDURE Book_Ticket(IN tabname varchar, IN n int, IN names varchar[], IN trainno int, IN doj date, IN choice varchar)
+CREATE OR REPLACE PROCEDURE Book_Ticket(IN tabname varchar, IN n int, IN names varchar[], IN trainno int, IN doj date, IN choice varchar, OUT isBooked int)
 LANGUAGE plpgsql
 as $$
 	declare
@@ -108,7 +108,20 @@ as $$
 		rec record;
 		count int := 1;
 		pnr text;
+		tmp1 int := 0;
+		tmp2 int := 0;
 	begin
+		EXECUTE format('SELECT ac_seat_count, sl_seat_count 
+						FROM booking_system
+						WHERE trainno = $1 and doj = $2')
+				INTO tmp1, tmp2
+				USING trainno, doj;
+
+		IF (choice = 'AC' and n > tmp1) or (choice = 'SL' and n > tmp2) then
+			isBooked = 0;
+			RETURN;
+		END IF;
+		
 		pnr := tabname;
 		answer := array_fill(null::text, array[n,3]);
 		FOR rec IN EXECUTE format('SELECT * FROM %s', tabname)
@@ -148,5 +161,6 @@ as $$
 			USING n, trainno, doj;
 		end if;
 		commit;
+		isBooked = 1;
 	end;
 $$;
