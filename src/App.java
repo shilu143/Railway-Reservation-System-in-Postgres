@@ -51,7 +51,7 @@ public class App {
     }
 
     static void BookTicket(Connection connection, int n, String[] names, int trainno,
-            LocalDate doj, String cls) {
+            LocalDate doj, String cls) throws SQLException {
         String tmp = String.valueOf(doj);
         String dt = tmp.substring(0, 4) + tmp.substring(5, 7) + tmp.substring(8, 10);
 
@@ -65,25 +65,37 @@ public class App {
             return;
         }
 
-        try {
-            CallableStatement pstmt = connection.prepareCall(" CALL book_ticket(?, ?, ?, ?, ?, ?, ?) ");
-            pstmt.setString(1, tabname);
-            pstmt.setInt(2, n);
-            Array nameArray = connection.createArrayOf("varchar", names);
-            pstmt.setArray(3, nameArray);
-            pstmt.setInt(4, trainno);
-            pstmt.setDate(5, Date.valueOf(doj));
-            pstmt.setString(6, cls);
-            pstmt.registerOutParameter(7, Types.INTEGER);
-            pstmt.execute();
-            if (pstmt.getInt(7) == 1) {
-                System.out.println("Ticket successfully Booked");
-            } else {
-                System.out.println("Unable to book Ticket(there is not enough seat available)");
-            }
+        while (true) {
+            //
+            connection.setAutoCommit(false);
+            connection.setTransactionIsolation(8); // serializable
+            //
 
-        } catch (SQLException exception) {
-            System.out.println(exception.getMessage());
+            try {
+                CallableStatement pstmt = connection.prepareCall(" CALL book_ticket(?, ?, ?, ?, ?, ?, ?) ");
+                pstmt.setString(1, tabname);
+                pstmt.setInt(2, n);
+                Array nameArray = connection.createArrayOf("varchar", names);
+                pstmt.setArray(3, nameArray);
+                pstmt.setInt(4, trainno);
+                pstmt.setDate(5, Date.valueOf(doj));
+                pstmt.setString(6, cls);
+                pstmt.registerOutParameter(7, Types.INTEGER);
+                pstmt.execute();
+                if (pstmt.getInt(7) == 1) {
+                    System.out.println("Ticket successfully Booked");
+                } else {
+                    System.out.println("Unable to book Ticket(there is not enough seat available)");
+                }
+                //
+                connection.commit();
+                connection.setAutoCommit(true);
+                break;
+                //
+            } catch (SQLException exception) {
+                connection.rollback();
+                System.out.println(exception.getMessage());
+            }
         }
     }
 
@@ -112,7 +124,7 @@ public class App {
         }
     }
 
-    static void ticketBookingInput(Connection connection) {
+    static void ticketBookingInput(Connection connection) throws SQLException {
         String query = "";
         try {
             File file = new File("./input/bookings.txt");
@@ -200,13 +212,7 @@ public class App {
             ticketBookingInput(connection);
 
         } catch (SQLException e) {
-
             System.out.println(e.getMessage());
-            try {
-                connection.rollback();
-            } catch (SQLException exception) {
-                System.out.println(exception.getMessage());
-            }
         }
     }
 }

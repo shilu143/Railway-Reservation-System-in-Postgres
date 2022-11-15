@@ -111,39 +111,40 @@ as $$
 		tmp1 INT := 0;
 		tmp2 INT := 0;
 	BEGIN
-		isBooked = 0;
-		EXECUTE format('SELECT ac_seat_count, sl_seat_count 
-						FROM booking_system
-						WHERE trainno = $1 and doj = $2')
-				INTO tmp1, tmp2
-				USING trainno, doj;
+		WHILE count <= n LOOP
+			isBooked = 0;
+			EXECUTE format('SELECT ac_seat_count, sl_seat_count 
+							FROM booking_system
+							WHERE trainno = $1 and doj = $2')
+					INTO tmp1, tmp2
+					USING trainno, doj;
 
-		IF (choice = 'AC' and n > tmp1) or (choice = 'SL' and n > tmp2) THEN
-			RETURN;
-		END IF;
-		
-		pnr := tabname;
-		answer := array_fill(NULL::TEXT, array[n,3]);
-		FOR rec IN EXECUTE format('SELECT * FROM %s', tabname)
-    	LOOP
-			IF count > n THEN
-				EXIT;
+			IF (choice = 'AC' and n > tmp1) or (choice = 'SL' and n > tmp2) THEN
+				RETURN;
 			END IF;
-      		IF rec.stat = 'E' THEN
-				pass_coach[count] = rec.coachno;
-				pass_berth[count] = rec.berthno;
-				pass_berthtype[count] = rec.berthtype;
+			
+			pnr := tabname;
+			answer := array_fill(NULL::TEXT, array[n,3]);
+			FOR rec IN EXECUTE format('SELECT * FROM %s', tabname)
+			LOOP
+				IF count > n THEN
+					EXIT;
+				END IF;
+				IF rec.stat = 'E' THEN
+					pass_coach[count] = rec.coachno;
+					pass_berth[count] = rec.berthno;
+					pass_berthtype[count] = rec.berthtype;
 
-				EXECUTE format('UPDATE %s 
-				set stat = ''F''
-				WHERE coachno = $1 and berthno = $2'
-				,tabname)
-				USING rec.coachno, rec.berthno;
-				
-				count := count + 1;
-			END IF;
-    	END LOOP;
-
+					EXECUTE format('UPDATE %s 
+					set stat = ''F''
+					WHERE coachno = $1 and berthno = $2'
+					,tabname)
+					USING rec.coachno, rec.berthno;
+					
+					count := count + 1;
+				END IF;
+			END LOOP;
+		END LOOP;
 		pnr := concat(pnr, 'C', pass_coach[1], 'B', pass_berth[1]);
 		EXECUTE format('INSERT INTO Ticket(trainno, doj, pnr, passenger_no, names, coachno, coachtype, berthno, berthtype) 
 		VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)')
@@ -160,7 +161,6 @@ as $$
 			WHERE trainno = $2 and doj = $3')
 			USING n, trainno, doj;
 		END IF;
-		COMMIT;
 		isBooked = 1;
 	END;
 $$;
