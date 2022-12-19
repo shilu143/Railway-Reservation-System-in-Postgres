@@ -4,25 +4,20 @@ CREATE SCHEMA public;
 GRANT ALL ON SCHEMA public TO postgres;
 GRANT ALL ON SCHEMA public TO public;
 
-CREATE TABLE Trains(
-	trainno INTEGER PRIMARY KEY
-);
-
 CREATE TABLE Booking_System(
-	trainno INTEGER,
+	trainno VARCHAR,
 	doj DATE,
 	AC INTEGER NOT NULL,
 	SL INTEGER NOT NULL,
 	AC_seat_count INTEGER NOT NULL CHECK (AC_seat_count >= 0),
 	SL_seat_count INTEGER NOT NULL CHECK (SL_seat_count >= 0),
-	PRIMARY KEY(trainno, doj),
-	FOREIGN KEY (trainno) REFERENCES trains(trainno)
+	PRIMARY KEY(trainno, doj)
 );
 
 CREATE TABLE Ticket(
-	trainno INTEGER NOT NULL,
+	trainno VARCHAR NOT NULL,
 	doj DATE NOT NULL,
-	pnr VARCHAR(20),
+	pnr VARCHAR,
 	passenger_no INTEGER NOT NULL,
 	names TEXT[] NOT NULL,
 	coachno INTEGER[] NOT NULL,
@@ -33,22 +28,12 @@ CREATE TABLE Ticket(
 	FOREIGN KEY (trainno, doj) REFERENCES booking_system(trainno, doj)
 );
 
-
-CREATE OR REPLACE PROCEDURE INSERT_TRAIN(IN trainno INTEGER)
-LANGUAGE plpgsql
-as $$
-	BEGIN
-		INSERT INTO trains VALUES(trainno);
-		COMMIT;
-	END;
-$$;
-
 CREATE OR REPLACE PROCEDURE TABLE_CREATE(IN tabname VARCHAR) 
 LANGUAGE plpgsql
 as $$
 	BEGIN
 		EXECUTE format('CREATE TABLE %s (
-			trainno INTEGER,
+			trainno VARCHAR,
 			doj DATE,
 			coachno INTEGER,
 			berthno INTEGER,
@@ -62,7 +47,7 @@ as $$
 	END;
 $$;
 
-CREATE OR REPLACE PROCEDURE	FILL_TABLE(IN ac_tabname VARCHAR, IN sl_tabname VARCHAR, IN trainno INTEGER,
+CREATE OR REPLACE PROCEDURE	FILL_TABLE(IN ac_tabname VARCHAR, IN sl_tabname VARCHAR, IN trainno VARCHAR,
  										IN doj DATE, IN ac INTEGER, IN sl INTEGER)
 LANGUAGE plpgsql
 AS $$
@@ -97,7 +82,7 @@ AS $$
 $$;
 
 
-CREATE OR REPLACE PROCEDURE Book_Ticket(IN tabname VARCHAR, IN n INT, IN names VARCHAR[], IN trainno INT, IN doj DATE, IN choice VARCHAR, OUT isBooked INT)
+CREATE OR REPLACE PROCEDURE Book_Ticket(IN tabname VARCHAR, IN n INT, IN names VARCHAR[], IN trainno VARCHAR, IN doj DATE, IN choice VARCHAR, INOUT isBooked INT)
 LANGUAGE plpgsql
 as $$
 	DECLARE
@@ -110,57 +95,66 @@ as $$
 		pnr TEXT;
 		tmp1 INT := 0;
 		tmp2 INT := 0;
+		temp INT := 0;
 	BEGIN
-		WHILE count <= n LOOP
-			isBooked = 0;
-			EXECUTE format('SELECT ac_seat_count, sl_seat_count 
-							FROM booking_system
-							WHERE trainno = $1 and doj = $2')
-					INTO tmp1, tmp2
-					USING trainno, doj;
+		isBooked = 0;
 
-			IF (choice = 'AC' and n > tmp1) or (choice = 'SL' and n > tmp2) THEN
+		WHILE count <= n 
+		LOOP
+			EXECUTE format('SELECT ac_seat_count, sl_seat_count 
+						FROM booking_system
+						WHERE trainno = $1 and doj = $2')
+				INTO tmp1, tmp2
+				USING trainno, doj;
+
+			IF (choice = 'AC' and tmp1 < (n - count + 1)) or (choice = 'SL' and tmp2 < (n - count + 1)) THEN
+				ROLLBACK;
+				isBooked = 0;
 				RETURN;
 			END IF;
-			
-			pnr := tabname;
-			answer := array_fill(NULL::TEXT, array[n,3]);
+
 			FOR rec IN EXECUTE format('SELECT * FROM %s', tabname)
 			LOOP
-				IF count > n THEN
-					EXIT;
-				END IF;
-				IF rec.stat = 'E' THEN
+				EXECUTE format('UPDATE %s x
+				SET stat = ''F''
+				FROM (SELECT coachno, berthno FROM %s WHERE coachno = $1 and berthno = $2 FOR UPDATE SKIP LOCKED) y
+				WHERE x.coachno = y.coachno and x.berthno = y.berthno
+				RETURNING x.berthno', tabname, tabname)
+				USING rec.coachno, rec.berthno
+				INTO temp;
+				
+				IF temp is not null then
+					EXECUTE format('DELETE FROM %s WHERE coachno = $1 and berthno = $2',tabname)
+					USING rec.coachno, rec.berthno;
+
 					pass_coach[count] = rec.coachno;
 					pass_berth[count] = rec.berthno;
 					pass_berthtype[count] = rec.berthtype;
 
-					EXECUTE format('UPDATE %s 
-					set stat = ''F''
-					WHERE coachno = $1 and berthno = $2'
-					,tabname)
-					USING rec.coachno, rec.berthno;
+					IF choice = 'AC' THEN
+						EXECUTE format('UPDATE booking_system
+						SET ac_seat_count = ac_seat_count - $1
+						WHERE trainno = $2 and doj = $3')
+						USING 1, trainno, doj;
+					ELSE
+						EXECUTE format('UPDATE booking_system
+						SET sl_seat_count = sl_seat_count - $1
+						WHERE trainno = $2 and doj = $3')
+						USING 1, trainno, doj;
+					END IF;
+					count = count + 1;
 					
-					count := count + 1;
+					EXIT;
 				END IF;
 			END LOOP;
 		END LOOP;
-		pnr := concat(pnr, 'C', pass_coach[1], 'B', pass_berth[1]);
+
+		pnr := concat(tabname, 'C', pass_coach[1], 'B', pass_berth[1]);
 		EXECUTE format('INSERT INTO Ticket(trainno, doj, pnr, passenger_no, names, coachno, coachtype, berthno, berthtype) 
 		VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9)')
 		USING trainno, doj, pnr, n, names, pass_coach, choice, pass_berth, pass_berthtype;
 
-		IF choice = 'AC' THEN
-			EXECUTE format('UPDATE booking_system
-			SET ac_seat_count = ac_seat_count - $1
-			WHERE trainno = $2 and doj = $3')
-			USING n, trainno, doj;
-		ELSE
-			EXECUTE format('UPDATE booking_system
-			SET sl_seat_count = sl_seat_count - $1
-			WHERE trainno = $2 and doj = $3')
-			USING n, trainno, doj;
-		END IF;
+		COMMIT;
 		isBooked = 1;
 	END;
 $$;
